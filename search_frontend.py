@@ -31,6 +31,7 @@ stopwords_frozen = frozenset([
 # regular expression used for tokenization, matches alphanumeric tokens
 RE_WORD = re.compile(r"""[\#\@\w](['\-]?\w){2,24}""", re.UNICODE)
 
+
 def tokenize(text, stopwords_frozen):
     """
    tokenize input text by lowercasing, applying a regex-based tokenizer and removing stopwords
@@ -38,9 +39,11 @@ def tokenize(text, stopwords_frozen):
     return [token.group() for token in RE_WORD.finditer(text.lower())
             if token.group() not in stopwords_frozen]
 
+
 # GCS path in order to get files from the bucket
 def gcs_path(filename: str) -> str:
     return f"{GCS_BUCKET}/{GCS_PREFIX}/{filename}"
+
 
 def load_pkl_from_gcs(filename: str):
     """
@@ -62,7 +65,8 @@ if len(DOCID_TO_TITLE) > 0:
     if isinstance(k, str):
         DOCID_TO_TITLE = {int(doc_id): title for doc_id, title in DOCID_TO_TITLE.items()}
 
-def _normalize_posting_locs(index_obj: InvertedIndex):
+
+def normalize_posting_locs(index_obj: InvertedIndex):
     """
    normalize posting list file paths so that each path includes the correct GCS prefix exactly once
    """
@@ -91,8 +95,9 @@ def _normalize_posting_locs(index_obj: InvertedIndex):
         new_posting_locs[term] = [(fix_path(file_name), offset) for (file_name, offset) in locs]
     index_obj.posting_locs = new_posting_locs
 
+
 # apply path normalization to the loaded index
-_normalize_posting_locs(IDX)
+normalize_posting_locs(IDX)
 # BASE_DIR is intentionally set to an empty string
 # when using GCS, read_a_posting_list receives the bucket name separately and posting file paths are resolved relative to the bucket root
 BASE_DIR = ""
