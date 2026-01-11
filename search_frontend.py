@@ -17,53 +17,54 @@ import numpy as np
 from collections import defaultdict, Counter
 from inverted_index_gcp import InvertedIndex
 
-GCS_BUCKET = "map_reduce_323866285"
-GCS_PREFIX = "postings_gcp"
+gcs_bucket = "map_reduce_323866285"
+gcs_prefix = "postings_gcp"
 
 import gcsfs
-fs = gcsfs.GCSFileSystem()
+gcs_file_system = gcsfs.GCSFileSystem()
 
 # a fixed set of common English stopwords that are removed from queries in order to reduce noise.
-stopwords_frozen = frozenset([
+stopwords = frozenset([
     'the', 'and', 'is', 'in', 'to', 'of', 'for', 'on', 'with', 'as', 'by', 'at',
     'from', 'that', 'this', 'it', 'be', 'are', 'was', 'were', 'or', 'an', 'a'])
 
 # regular expression used for tokenization, matches alphanumeric tokens
-RE_WORD = re.compile(r"""[\#\@\w](['\-]?\w){2,24}""", re.UNICODE)
+re_word = re.compile(r"""[\#\@\w](['\-]?\w){2,24}""", re.UNICODE)
 
 
 def tokenize(text, stopwords_frozen):
     """
    tokenize input text by lowercasing, applying a regex-based tokenizer and removing stopwords
    """
-    return [token.group() for token in RE_WORD.finditer(text.lower())
+    return [token.group() for token in re_word.finditer(text.lower())
             if token.group() not in stopwords_frozen]
 
 
 # GCS path in order to get files from the bucket
 def gcs_path(filename: str) -> str:
-    return f"{GCS_BUCKET}/{GCS_PREFIX}/{filename}"
+    return f"{gcs_bucket}/{gcs_prefix}/{filename}"
 
 
 def load_pkl_from_gcs(filename: str):
     """
     load a pickled object directly from Google Cloud Storage using gcsfs
     """
-    with fs.open(gcs_path(filename), "rb") as f:
+    with gcs_file_system.open(gcs_path(filename), "rb") as f:
         return pickle.load(f)
 
+
 # load the inverted body index object from GCS
-IDX = InvertedIndex.read_index("postings_gcp", "index", bucket_name="map_reduce_323866285")
+inverted_index_body = InvertedIndex.read_index("postings_gcp", "index", bucket_name="map_reduce_323866285")
 # load data structures required for ranking
-DOC_LEN_DICT = load_pkl_from_gcs("doc_lengths.pkl")  # document lengths
-AVGDL = load_pkl_from_gcs("avg_doc_len.pkl")   # average document length
-DOCID_TO_TITLE = load_pkl_from_gcs("id_to_title.pkl")  # document ids to titles
+doc_len_dict = load_pkl_from_gcs("doc_lengths.pkl")  # document lengths
+avgdl = load_pkl_from_gcs("avg_doc_len.pkl")   # average document length
+docid_to_title = load_pkl_from_gcs("id_to_title.pkl")  # document ids to titles
 
 # normalize title keys to int
-if len(DOCID_TO_TITLE) > 0:
-    k = next(iter(DOCID_TO_TITLE.keys()))
+if len(docid_to_title) > 0:
+    k = next(iter(docid_to_title.keys()))
     if isinstance(k, str):
-        DOCID_TO_TITLE = {int(doc_id): title for doc_id, title in DOCID_TO_TITLE.items()}
+        docid_to_title = {int(doc_id): title for doc_id, title in docid_to_title.items()}
 
 
 def normalize_posting_locs(index_obj: InvertedIndex):
@@ -73,8 +74,8 @@ def normalize_posting_locs(index_obj: InvertedIndex):
     if not hasattr(index_obj, "posting_locs") or index_obj.posting_locs is None:
         return
 
-    prefix = GCS_PREFIX.rstrip("/")
-    bucket = GCS_BUCKET
+    prefix = gcs_prefix.rstrip("/")
+    bucket = gcs_bucket
 
     def fix_path(file_name: str) -> str:
         file_name = str(file_name).lstrip("/")
@@ -97,10 +98,10 @@ def normalize_posting_locs(index_obj: InvertedIndex):
 
 
 # apply path normalization to the loaded index
-normalize_posting_locs(IDX)
+normalize_posting_locs(inverted_index_body)
 # BASE_DIR is intentionally set to an empty string
 # when using GCS, read_a_posting_list receives the bucket name separately and posting file paths are resolved relative to the bucket root
-BASE_DIR = ""
+base_dir = ""
 
 
 class BM25:
@@ -147,7 +148,7 @@ class BM25:
             term_idf = self.idf(term)
             # read posting list for the term from GCS
             posting_list = self.index.read_a_posting_list(
-                BASE_DIR, term, bucket_name=GCS_BUCKET)
+                base_dir, term, bucket_name=gcs_bucket)
             for doc_id, tf in posting_list:
                 doc_length = self.doc_len_dict.get(doc_id, 0)
                 if doc_length == 0:
@@ -161,7 +162,7 @@ class BM25:
         return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:topN]
 
 
-BM25_ENGINE = BM25(IDX, DOC_LEN_DICT, AVGDL, k1=1.5, b=0.75)
+bm25_engine = BM25(inverted_index_body, doc_len_dict, avgdl, k1=1.5, b=0.75)
 
 
 @app.route("/search")
@@ -176,14 +177,14 @@ def search():
     if len(query) == 0:
         return jsonify(search_results)
     # tokenize query and remove stopwords
-    tokens = tokenize(query, stopwords_frozen)
+    tokens = tokenize(query, stopwords)
     # check number of tokens
     if len(tokens) == 0:
         return jsonify([])
     # rank documents using BM25
-    ranked = BM25_ENGINE.search(tokens, topN=100)
+    ranked = bm25_engine.search(tokens, topN=100)
     # return document IDs and titles
-    search_results = [(int(doc_id), DOCID_TO_TITLE.get(int(doc_id), str(doc_id)))
+    search_results = [(int(doc_id), docid_to_title.get(int(doc_id), str(doc_id)))
            for doc_id, _ in ranked]
 
     return jsonify(search_results)
