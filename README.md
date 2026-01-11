@@ -19,6 +19,9 @@ The repository contains the following files:
 - queries_train.json  
   Contains training queries and relevance judgments used for evaluation and experimentation. Each key is a natural language query, and each value is a list of Wikipedia document IDs considered relevant to that query. This file is not required to run the search server, but is intended for offline evaluation, ranking analysis, and metric computation such as Precision@k.
 
+- run_frontend_in_colab.ipynb  
+  This Jupyter notebook is intended for running and testing the search frontend inside Google Colab. It provides a lightweight, local-like environment for development, debugging, and validation without deploying a Google Compute Engine VM. The notebook installs all required dependencies, loads the inverted index and auxiliary data structures from Google Cloud Storage, and launches the Flask search server inside the Colab runtime.
+  
 After deployment, the search engine can be queried via HTTP using the following format:
 
 http://<EXTERNAL_IP>:8080/search?query=example
