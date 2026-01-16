@@ -24,6 +24,10 @@ This file contains training queries and relevance judgments used for offline eva
 run_frontend_in_colab.ipynb
 This Jupyter notebook is intended for running and testing the search frontend in a Google Colab environment. It allows development and debugging without deploying a Google Compute Engine virtual machine, while still loading the inverted index and all required data directly from Google Cloud Storage.
 
-After deployment, the search engine can be queried via HTTP by providing a free text query. The system responds with a JSON formatted list of ranked document id and title pairs.
+After deployment, the search engine can be queried via HTTP using the following format:
+
+http://<EXTERNAL_IP>:8080/search?query=example
+
+The system returns a JSON response containing ranked (doc_id, title) pairs.
 
 The system was implemented in Python and deployed using Google Cloud Platform services, including Google Cloud Storage and Google Compute Engine, as part of an academic Information Retrieval assignment.
