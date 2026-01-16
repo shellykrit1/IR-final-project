@@ -2,7 +2,7 @@
 
 This repository implements a full text search engine over the English Wikipedia corpus. The system is based on an inverted index stored entirely on Google Cloud Storage and uses a BM25 based ranking approach for document retrieval. The search engine is exposed via a Flask based HTTP server and deployed on a Google Compute Engine virtual machine.
 
-The project was developed as part of an academic Information Retrieval assignment, with emphasis on correctness, clarity, and cloud based scalability.
+The project was developed as part of an academic Information Retrieval assignment.
 
 The repository contains the following files.
 
