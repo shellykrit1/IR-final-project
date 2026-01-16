@@ -32,6 +32,7 @@ This Jupyter notebook was used for building a small scale index and for testing 
 
 After deployment, the search engine can be queried via HTTP using the following format:
 **http://<EXTERNAL_IP>:8080/search?query=example**
+
 The system returns a JSON response containing ranked (doc_id, title) pairs.
 
 The system was implemented in Python and deployed using Google Cloud Platform services as part of an academic Information Retrieval assignment.
