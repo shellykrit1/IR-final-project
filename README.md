@@ -1,31 +1,29 @@
 # Wikipedia Search Engine
 
-This repository implements a full text search engine over the Wikipedia corpus using an Inverted Index stored on Google Cloud Storage and a BM25 ranking model. The system is exposed via a Flask server and deployed on a Google Compute Engine virtual machine. The project was developed as part of an academic Information Retrieval assignment, with emphasis on correctness, clarity, and cloud-based scalability.
+This repository implements a full text search engine over the English Wikipedia corpus. The system is based on an inverted index stored entirely on Google Cloud Storage and uses a BM25 based ranking approach for document retrieval. The search engine is exposed via a Flask based HTTP server and deployed on a Google Compute Engine virtual machine.
 
-The repository contains the following files:
+The project was developed as part of an academic Information Retrieval assignment, with emphasis on correctness, clarity, and cloud based scalability.
 
-- inverted_index_gcp.py  
-  Implements the core Inverted Index data structure. This file is responsible for building the index from tokenized documents, tracking document frequency and total term frequency, and writing posting lists to disk. Posting lists are stored in binary format using fixed size records. To support large-scale indexing, posting lists are split across multiple files using MultiFileWriter and MultiFileReader. Only metadata and posting locations are kept in memory and serialized using pickle, while the posting lists themselves are read from GCS on demand.
+The repository contains the following files.
 
-- search_frontend.py  
-  Implements the search frontend using Flask. This file loads the inverted index from GCS, normalizes posting list paths, tokenizes incoming queries, and ranks documents using the BM25 scoring function. Tokenization includes lowercasing, regex-based token extraction, and stopword removal, and is consistent with the tokenization used during index construction. The main implemented endpoint is search function, which returns a ranked list of (doc_id, title) pairs.
+inverted_index_gcp.py
+This file implements the inverted index used by the search engine. The index is designed to operate directly on data stored in Google Cloud Storage. Posting lists and all auxiliary index data are stored in binary files in GCS and accessed during query processing. The implementation supports large scale posting lists by splitting them across multiple files. All required index data is loaded from Google Cloud Storage, and the system does not rely on locally stored index files.
 
-- startup_script_gcp.sh  
-  A startup script executed automatically when the Google Compute Engine virtual machine is created. The script installs system dependencies, creates a Python virtual environment, and installs all required Python packages (Flask, NumPy, Pandas, google-cloud-storage, gcsfs, Werkzeug, etc.). This ensures the VM is fully configured and ready to run the search frontend without manual intervention.
+search_frontend.py
+This file implements the search frontend using the Flask framework. The frontend loads the inverted index and all required data structures directly from Google Cloud Storage, processes incoming user queries, and ranks documents using a BM25 based scoring model. Query processing includes lowercasing, regular expression based tokenization, and stopword removal, and is consistent with the preprocessing used during index construction. The search endpoint returns a ranked list of document id and title pairs in JSON format.
 
-- run_frontend_in_gcp.sh  
-  A deployment and execution script for Google Cloud Platform. This script allocates a static external IP address, creates a firewall rule allowing traffic on port 8080, provisions a Compute Engine instance, uploads the search_frontend.py file to the VM, and runs the Flask server using nohup.
+startup_script_gcp.sh
+This file is a startup script that is executed automatically when a Google Compute Engine virtual machine is created. The script installs all required system dependencies, creates a Python virtual environment, and installs the necessary Python packages. This ensures that the virtual machine is fully configured and ready to run the search frontend without manual intervention.
 
-- queries_train.json  
-  Contains training queries and relevance judgments used for evaluation and experimentation. Each key is a natural language query, and each value is a list of Wikipedia document IDs considered relevant to that query. This file is not required to run the search server, but is intended for offline evaluation, ranking analysis, and metric computation such as Precision@k.
+run_frontend_in_gcp.sh
+This file is a deployment and execution script for Google Cloud Platform. It automates the deployment process by allocating a static external IP address, configuring firewall rules, provisioning a Compute Engine instance, uploading the search frontend code to the virtual machine, and running the Flask server in the background.
 
-- run_frontend_in_colab.ipynb  
-  This Jupyter notebook is intended for running and testing the search frontend inside Google Colab. It provides a lightweight, local-like environment for development, debugging, and validation without deploying a Google Compute Engine VM. The notebook installs all required dependencies, loads the inverted index and auxiliary data structures from Google Cloud Storage, and launches the Flask search server inside the Colab runtime.
-  
-After deployment, the search engine can be queried via HTTP using the following format:
+queries_train.json
+This file contains training queries and relevance judgments used for offline evaluation and experimentation. Each entry consists of a natural language query and a list of Wikipedia document ids considered relevant to that query. This file is not required to run the search engine, but is used for evaluation and analysis of retrieval quality.
 
-http://<EXTERNAL_IP>:8080/search?query=example
+run_frontend_in_colab.ipynb
+This Jupyter notebook is intended for running and testing the search frontend in a Google Colab environment. It allows development and debugging without deploying a Google Compute Engine virtual machine, while still loading the inverted index and all required data directly from Google Cloud Storage.
 
-The system returns a JSON response containing ranked (doc_id, title) pairs.
+After deployment, the search engine can be queried via HTTP by providing a free text query. The system responds with a JSON formatted list of ranked document id and title pairs.
 
-Developed as part of an academic Information Retrieval assignment using Python and Google Cloud Platform.
+The system was implemented in Python and deployed using Google Cloud Platform services, including Google Cloud Storage and Google Compute Engine, as part of an academic Information Retrieval assignment.
